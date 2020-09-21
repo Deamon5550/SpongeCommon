@@ -384,6 +384,9 @@ if (testplugins != null) {
         dependencies {
             implementation(rootProject.project(":SpongeAPI"))
             annotationProcessor(rootProject.project(":SpongeAPI"))
+            File("plugins").forEachLine {
+                runtime(files(it))
+            }
         }
 
         tasks.jar {
