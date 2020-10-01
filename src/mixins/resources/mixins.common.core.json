@@ -7,7 +7,13 @@
     "compatibilityLevel": "JAVA_8",
     "mixinPriority": 1101,
     "mixins": [
+        "advancements.AdvancementMixin",
+        "advancements.AdvancementProgressMixin",
+        "advancements.CriterionMixin",
+        "advancements.CriterionProgressMixin",
+        "advancements.DisplayInfoMixin",
         "advancements.FunctionManagerMixin",
+        "advancements.PlayerAdvancementsMixin",
         "adventure.bossbar.BossBarImplMixin",
         "adventure.text.AbstractComponentMixin",
         "adventure.text.format.StyleImplMixin",

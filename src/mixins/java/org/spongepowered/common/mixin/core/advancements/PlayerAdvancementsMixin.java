@@ -22,9 +22,11 @@
  * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
  * THE SOFTWARE.
  */
-package org.spongepowered.common.mixin.invalid.core.advancements;
+package org.spongepowered.common.mixin.core.advancements;
 
 import com.google.common.collect.ImmutableSet;
+import net.kyori.adventure.audience.Audience;
+import net.kyori.adventure.text.Component;
 import net.minecraft.advancements.Advancement;
 import net.minecraft.advancements.AdvancementProgress;
 import net.minecraft.advancements.CriterionProgress;
@@ -39,8 +41,6 @@ import org.spongepowered.api.entity.living.player.server.ServerPlayer;
 import org.spongepowered.api.event.SpongeEventFactory;
 import org.spongepowered.api.event.advancement.AdvancementEvent;
 import org.spongepowered.api.event.message.MessageEvent;
-import org.spongepowered.api.text.Text;
-import org.spongepowered.api.text.channel.MessageChannel;
 import org.spongepowered.asm.mixin.Final;
 import org.spongepowered.asm.mixin.Mixin;
 import org.spongepowered.asm.mixin.Shadow;
@@ -51,11 +51,11 @@ import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
 import org.spongepowered.asm.mixin.injection.callback.CallbackInfoReturnable;
 import org.spongepowered.common.SpongeCommon;
 import org.spongepowered.common.SpongeImplHooks;
+import org.spongepowered.common.adventure.SpongeAdventure;
 import org.spongepowered.common.bridge.advancements.AdvancementProgressBridge;
 import org.spongepowered.common.bridge.advancements.CriterionBridge;
 import org.spongepowered.common.bridge.advancements.CriterionProgressBridge;
 import org.spongepowered.common.bridge.advancements.PlayerAdvancementsBridge;
-import org.spongepowered.common.text.SpongeTexts;
 
 import java.time.Instant;
 import java.util.Map;
@@ -71,12 +71,12 @@ public abstract class PlayerAdvancementsMixin implements PlayerAdvancementsBridg
     @Shadow private ServerPlayerEntity player;
 
     private boolean impl$wasSuccess;
-    @Nullable private Text impl$message;
+    @Nullable private Component impl$message;
 
     @Inject(method = "startProgress", at = @At("HEAD"))
     private void impl$setAdvancementsOnStart(final Advancement advancement, final AdvancementProgress progress, final CallbackInfo ci) {
         final AdvancementProgressBridge advancementProgress = (AdvancementProgressBridge) progress;
-        advancementProgress.bridge$setAdvancementKey(((org.spongepowered.api.advancement.Advancement) advancement).getKey());
+        advancementProgress.bridge$setAdvancementId(advancement.getId());
         advancementProgress.bridge$setPlayerAdvancements((PlayerAdvancements) (Object) this);
     }
 
@@ -95,6 +95,8 @@ public abstract class PlayerAdvancementsMixin implements PlayerAdvancementsBridg
         final CriterionBridge mixinCriterion = (CriterionBridge) criterion;
         // Only remove the trigger once the goal is reached
         if (mixinCriterion.bridge$getScoreCriterion() != null) {
+
+
             return ((CriterionProgressBridge) progress).bridge$getAdvancementProgress()
                     .get(mixinCriterion.bridge$getScoreCriterion()).get().achieved();
         }
@@ -154,7 +156,7 @@ public abstract class PlayerAdvancementsMixin implements PlayerAdvancementsBridg
                     value = "INVOKE",
                     target = "Lnet/minecraft/server/management/PlayerList;sendMessage(Lnet/minecraft/util/text/ITextComponent;)V"))
     private void impl$updateTextOnGranting(final PlayerList list, final ITextComponent component) {
-        this.impl$message = SpongeTexts.toText(component);
+        this.impl$message = SpongeAdventure.asAdventure(component);
         this.impl$wasSuccess = true;
     }
 
@@ -176,28 +178,28 @@ public abstract class PlayerAdvancementsMixin implements PlayerAdvancementsBridg
         }
         final Instant instant = Instant.now();
 
-        final MessageChannel channel;
-        final MessageEvent.MessageFormatter formatter;
+
+        final Audience channel;
         if (this.impl$message != null) {
-            channel = MessageChannel.toPlayersAndServer();
-            formatter = new MessageEvent.MessageFormatter(this.impl$message);
+            channel = Sponge.getServer().getBroadcastAudience();
         } else {
-            channel = MessageChannel.toNone();
-            formatter = new MessageEvent.MessageFormatter();
-            formatter.clear();
+            channel = Audience.empty();
         }
 
         final AdvancementEvent.Grant event = SpongeEventFactory.createAdvancementEventGrant(
-                Sponge.getCauseStackManager().getCurrentCause(),
+                Sponge.getServer().getCauseStackManager().getCurrentCause(),
                 channel,
                 Optional.of(channel),
+                this.impl$message == null ? Component.empty() : this.impl$message,
+                this.impl$message == null ? Component.empty() : this.impl$message,
                 (org.spongepowered.api.advancement.Advancement) advancement,
-                formatter, (ServerPlayer) this.player, instant, false
+                (ServerPlayer) this.player, instant, false
 
         );
         SpongeCommon.postEvent(event);
-        if (!event.isMessageCancelled() && !event.getMessage().isEmpty()) {
-            event.getChannel().ifPresent(eventChannel -> eventChannel.send(this.player, event.getMessage()));
+        if (!event.isMessageCancelled()) {
+            event.getAudience().ifPresent(eventChannel -> eventChannel.sendMessage(event.getMessage()));
+// TODO what was this.player here for?            event.getChannel().ifPresent(eventChannel -> eventChannel.send(this.player, event.getMessage()));
         }
 
         this.impl$message = null;

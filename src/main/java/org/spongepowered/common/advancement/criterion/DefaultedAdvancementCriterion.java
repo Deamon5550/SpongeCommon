@@ -22,45 +22,33 @@
  * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
  * THE SOFTWARE.
  */
-package org.spongepowered.common.advancement;
+package org.spongepowered.common.advancement.criterion;
 
-import org.spongepowered.api.advancement.AdvancementProgress;
 import org.spongepowered.api.advancement.criteria.AdvancementCriterion;
+import org.spongepowered.api.advancement.criteria.AndCriterion;
+import org.spongepowered.api.advancement.criteria.OrCriterion;
 
-import java.time.Instant;
-import java.util.Optional;
+import java.util.Arrays;
 
-public class SpongeOrCriterionProgress extends SpongeOperatorCriterionProgress {
+public interface DefaultedAdvancementCriterion extends AdvancementCriterion {
 
-    public SpongeOrCriterionProgress(final AdvancementProgress progress, final SpongeOrCriterion criterion) {
-        super(progress, criterion);
+    @Override
+    default AdvancementCriterion and(Iterable<AdvancementCriterion> criteria) {
+        return SpongeCriterionHelper.build(AndCriterion.class, SpongeAndCriterion::new, this, criteria);
     }
 
     @Override
-    public SpongeOrCriterion getCriterion() {
-        return (SpongeOrCriterion) super.getCriterion();
+    default AdvancementCriterion and(AdvancementCriterion... criteria) {
+        return SpongeCriterionHelper.build(AndCriterion.class, SpongeAndCriterion::new, this, Arrays.asList(criteria));
     }
 
     @Override
-    public boolean achieved() {
-        for (final AdvancementCriterion criterion : this.getCriterion().getCriteria()) {
-            final Optional<Instant> time = this.progress.get(criterion).get().get();
-            if (time.isPresent()) {
-                return true;
-            }
-        }
-        return false;
+    default AdvancementCriterion or(Iterable<AdvancementCriterion> criteria) {
+        return SpongeCriterionHelper.build(OrCriterion.class, SpongeOrCriterion::new, this, criteria);
     }
 
     @Override
-    public Optional<Instant> get0() {
-        Optional<Instant> time = Optional.empty();
-        for (final AdvancementCriterion criterion : this.getCriterion().getCriteria()) {
-            final Optional<Instant> time1 = this.progress.get(criterion).get().get();
-            if (time1.isPresent() && (!time.isPresent() || time1.get().isAfter(time.get()))) {
-                time = time1;
-            }
-        }
-        return time;
+    default AdvancementCriterion or(AdvancementCriterion... criteria) {
+        return SpongeCriterionHelper.build(OrCriterion.class, SpongeOrCriterion::new, this, Arrays.asList(criteria));
     }
 }

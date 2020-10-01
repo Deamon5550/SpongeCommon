@@ -32,7 +32,7 @@ import org.spongepowered.api.advancement.criteria.CriterionProgress;
 import org.spongepowered.api.advancement.criteria.ScoreAdvancementCriterion;
 import org.spongepowered.api.advancement.criteria.ScoreCriterionProgress;
 import org.spongepowered.asm.mixin.Mixin;
-import org.spongepowered.common.advancement.ImplementationBackedCriterionProgress;
+import org.spongepowered.common.advancement.criterion.ImplementationBackedCriterionProgress;
 import org.spongepowered.common.bridge.advancements.AdvancementProgressBridge;
 
 import java.time.Instant;

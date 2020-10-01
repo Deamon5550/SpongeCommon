@@ -22,43 +22,25 @@
  * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
  * THE SOFTWARE.
  */
-package org.spongepowered.common.advancement;
+package org.spongepowered.common.advancement.criterion;
 
-import static com.google.common.base.Preconditions.checkState;
-
+import net.minecraft.advancements.Criterion;
 import net.minecraft.advancements.ICriterionInstance;
-import org.spongepowered.api.advancement.criteria.ScoreAdvancementCriterion;
+import org.spongepowered.api.advancement.criteria.AdvancementCriterion;
+import org.spongepowered.common.bridge.advancements.CriterionBridge;
 
-public class SpongeScoreCriterionBuilder extends AbstractCriterionBuilder<ScoreAdvancementCriterion, ScoreAdvancementCriterion.Builder>
-        implements ScoreAdvancementCriterion.Builder {
+public class SpongeCriterionBuilder extends AbstractCriterionBuilder<AdvancementCriterion, AdvancementCriterion.Builder>
+        implements AdvancementCriterion.Builder {
 
-    private int goal;
-
-    public SpongeScoreCriterionBuilder() {
-        this.reset();
-    }
-
+    @SuppressWarnings("ConstantConditions")
     @Override
-    ScoreAdvancementCriterion build0() {
-        return new SpongeScoreCriterion(this.name, this.goal, (ICriterionInstance) this.trigger);
-    }
-
-    @Override
-    public ScoreAdvancementCriterion.Builder from(final ScoreAdvancementCriterion value) {
-        this.goal = value.getGoal();
-        return super.from(value);
-    }
-
-    @Override
-    public ScoreAdvancementCriterion.Builder reset() {
-        this.goal = 1;
-        return super.reset();
-    }
-
-    @Override
-    public ScoreAdvancementCriterion.Builder goal(final int goal) {
-        checkState(goal > 0, "The goal must be greater than zero.");
-        this.goal = goal;
-        return this;
+    AdvancementCriterion build0() {
+        ICriterionInstance trigger = (ICriterionInstance) this.trigger;
+        if (this.trigger == null) {
+            trigger = SpongeDummyTrigger.Instance.dummy();
+        }
+        final Criterion criterion = new Criterion(trigger);
+        ((CriterionBridge) criterion).bridge$setName(this.name);
+        return (AdvancementCriterion) criterion;
     }
 }

@@ -22,16 +22,31 @@
  * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
  * THE SOFTWARE.
  */
-package org.spongepowered.common.advancement;
+package org.spongepowered.common.advancement.criterion;
 
 import org.spongepowered.api.advancement.criteria.AdvancementCriterion;
-import org.spongepowered.api.advancement.criteria.OrCriterion;
+import org.spongepowered.api.advancement.criteria.AndCriterion;
 
 import java.util.Set;
 
-public class SpongeOrCriterion extends SpongeOperatorCriterion implements OrCriterion {
+public class SpongeAndCriterion extends SpongeOperatorCriterion implements AndCriterion {
 
-    SpongeOrCriterion(final Set<AdvancementCriterion> criteria) {
-        super("or", criteria);
+    public static final AndCriterion.Factory FACTORY_INSTANCE = new SpongeAndCriterion.SpongeAndCriterionFactory();
+
+    SpongeAndCriterion(final Set<AdvancementCriterion> criteria) {
+        super("and", criteria);
+    }
+
+    private static class SpongeAndCriterionFactory implements AndCriterion.Factory {
+
+        @Override
+        public AdvancementCriterion of(AdvancementCriterion... criteria) {
+            return AdvancementCriterion.empty().and(criteria);
+        }
+
+        @Override
+        public AdvancementCriterion of(Iterable<AdvancementCriterion> criteria) {
+            return AdvancementCriterion.empty().and(criteria);
+        }
     }
 }

@@ -22,49 +22,46 @@
  * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
  * THE SOFTWARE.
  */
-package org.spongepowered.common.advancement;
+package org.spongepowered.common.mixin.core.advancements;
 
-import org.spongepowered.api.ResourceKey;
+import static com.google.common.base.Preconditions.checkState;
+
+import net.minecraft.advancements.DisplayInfo;
+import net.minecraft.util.ResourceLocation;
+import org.checkerframework.checker.nullness.qual.Nullable;
 import org.spongepowered.api.advancement.Advancement;
-import org.spongepowered.api.advancement.AdvancementTree;
-import org.spongepowered.api.advancement.DisplayInfo;
+import org.spongepowered.asm.mixin.Final;
+import org.spongepowered.asm.mixin.Mixin;
+import org.spongepowered.asm.mixin.Mutable;
+import org.spongepowered.asm.mixin.Shadow;
 import org.spongepowered.common.bridge.advancements.DisplayInfoBridge;
 
-import java.util.Optional;
+@Mixin(DisplayInfo.class)
+public abstract class DisplayInfoMixin implements DisplayInfoBridge {
 
-public final class SpongeAdvancementTree implements AdvancementTree {
+    @Shadow @Final @Mutable @Nullable private ResourceLocation background;
 
-    private final Advancement rootAdvancement;
-    private final ResourceKey key;
-    private final String name;
+    @Nullable private Advancement impl$advancement;
 
-    public SpongeAdvancementTree(Advancement rootAdvancement, ResourceKey key, String name) {
-        this.rootAdvancement = rootAdvancement;
-        this.key = key;
-        this.name = name;
+    @Override
+    public Advancement bridge$getAdvancement() {
+        checkState(this.impl$advancement != null, "The advancement is not yet initialized");
+        return this.impl$advancement;
     }
 
     @Override
-    public ResourceKey getKey() {
-        return this.key;
+    public void bridge$setAdvancement(Advancement advancement) {
+        this.impl$advancement = advancement;
+    }
+
+    @Nullable
+    @Override
+    public String bridge$getBackground() {
+        return this.background == null ? null : this.background.toString();
     }
 
     @Override
-    public String getName() {
-        return this.name;
-    }
-
-    @Override
-    public Advancement getRootAdvancement() {
-        return this.rootAdvancement;
-    }
-
-    @Override
-    public String getBackgroundPath() {
-        final Optional<DisplayInfo> displayInfo = this.rootAdvancement.getDisplayInfo();
-        if (displayInfo.isPresent()) {
-            return ((DisplayInfoBridge) displayInfo.get()).bridge$getBackground();
-        }
-        return "SPONGE_MISSING_BACKGROUND_PATH";
+    public void bridge$setBackground(@Nullable String background) {
+        this.background = background == null ? null : new ResourceLocation(background);
     }
 }

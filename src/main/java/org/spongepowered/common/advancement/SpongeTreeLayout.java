@@ -35,9 +35,9 @@ import java.util.Optional;
 
 public final class SpongeTreeLayout implements TreeLayout {
 
-    private final SpongeAdvancementTree tree;
+    private final AdvancementTree tree;
 
-    public SpongeTreeLayout(final SpongeAdvancementTree tree) {
+    public SpongeTreeLayout(final AdvancementTree tree) {
         this.tree = tree;
     }
 
@@ -49,7 +49,7 @@ public final class SpongeTreeLayout implements TreeLayout {
     @Override
     public Collection<TreeLayoutElement> getElements() {
         final ImmutableSet.Builder<TreeLayoutElement> elements = ImmutableSet.builder();
-        collectElements(this.tree.getRootAdvancement(), elements);
+        SpongeTreeLayout.collectElements(this.tree.getRootAdvancement(), elements);
         return elements.build();
     }
 

@@ -22,23 +22,36 @@
  * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
  * THE SOFTWARE.
  */
-package org.spongepowered.common.advancement;
+package org.spongepowered.common.advancement.criterion;
 
 import org.spongepowered.api.advancement.AdvancementProgress;
 import org.spongepowered.api.advancement.criteria.AdvancementCriterion;
+import org.spongepowered.common.advancement.criterion.SpongeOperatorCriterionProgress;
+import org.spongepowered.common.advancement.criterion.SpongeOrCriterion;
 
 import java.time.Instant;
 import java.util.Optional;
 
-public class SpongeAndCriterionProgress extends SpongeOperatorCriterionProgress {
+public class SpongeOrCriterionProgress extends SpongeOperatorCriterionProgress {
 
-    public SpongeAndCriterionProgress(final AdvancementProgress progress, final SpongeAndCriterion criterion) {
+    public SpongeOrCriterionProgress(final AdvancementProgress progress, final SpongeOrCriterion criterion) {
         super(progress, criterion);
     }
 
     @Override
-    public SpongeAndCriterion getCriterion() {
-        return (SpongeAndCriterion) super.getCriterion();
+    public SpongeOrCriterion getCriterion() {
+        return (SpongeOrCriterion) super.getCriterion();
+    }
+
+    @Override
+    public boolean achieved() {
+        for (final AdvancementCriterion criterion : this.getCriterion().getCriteria()) {
+            final Optional<Instant> time = this.progress.get(criterion).get().get();
+            if (time.isPresent()) {
+                return true;
+            }
+        }
+        return false;
     }
 
     @Override
@@ -46,9 +59,7 @@ public class SpongeAndCriterionProgress extends SpongeOperatorCriterionProgress 
         Optional<Instant> time = Optional.empty();
         for (final AdvancementCriterion criterion : this.getCriterion().getCriteria()) {
             final Optional<Instant> time1 = this.progress.get(criterion).get().get();
-            if (!time1.isPresent()) {
-                return Optional.empty();
-            } else if (!time.isPresent() || time1.get().isAfter(time.get())) {
+            if (time1.isPresent() && (!time.isPresent() || time1.get().isAfter(time.get()))) {
                 time = time1;
             }
         }

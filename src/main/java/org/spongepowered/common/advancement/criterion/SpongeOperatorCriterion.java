@@ -22,7 +22,7 @@
  * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
  * THE SOFTWARE.
  */
-package org.spongepowered.common.advancement;
+package org.spongepowered.common.advancement.criterion;
 
 import com.google.common.collect.ImmutableSet;
 import org.spongepowered.api.advancement.criteria.AdvancementCriterion;

@@ -22,9 +22,31 @@
  * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
  * THE SOFTWARE.
  */
-package org.spongepowered.common.advancement;
+package org.spongepowered.common.advancement.criterion;
 
-public interface ImplementationBackedCriterionProgress {
+import org.spongepowered.api.advancement.criteria.AdvancementCriterion;
+import org.spongepowered.api.advancement.criteria.OrCriterion;
 
-    void invalidateAchievedState();
+import java.util.Set;
+
+public class SpongeOrCriterion extends SpongeOperatorCriterion implements OrCriterion {
+
+    public static final OrCriterion.Factory FACTORY_INSTANCE = new SpongeOrCriterionFactory();
+
+    SpongeOrCriterion(final Set<AdvancementCriterion> criteria) {
+        super("or", criteria);
+    }
+
+    private static class SpongeOrCriterionFactory implements OrCriterion.Factory {
+
+        @Override
+        public AdvancementCriterion of(AdvancementCriterion... criteria) {
+            return AdvancementCriterion.empty().or(criteria);
+        }
+
+        @Override
+        public AdvancementCriterion of(Iterable<AdvancementCriterion> criteria) {
+            return AdvancementCriterion.empty().or(criteria);
+        }
+    }
 }

@@ -22,12 +22,15 @@
  * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
  * THE SOFTWARE.
  */
-package org.spongepowered.common.advancement;
+package org.spongepowered.common.advancement.criterion;
 
 import net.minecraft.advancements.Criterion;
 import net.minecraft.advancements.ICriterionInstance;
+import net.minecraft.advancements.criterion.CriterionInstance;
+import net.minecraft.util.ResourceLocation;
 import org.spongepowered.api.advancement.criteria.ScoreAdvancementCriterion;
 import org.spongepowered.api.advancement.criteria.trigger.FilteredTrigger;
+import org.spongepowered.common.advancement.criterion.DefaultedAdvancementCriterion;
 import org.spongepowered.common.bridge.advancements.CriterionBridge;
 
 import java.util.ArrayList;
@@ -49,7 +52,8 @@ public class SpongeScoreCriterion implements ScoreAdvancementCriterion, Defaulte
         this.internalCriteria = new ArrayList<>(goal);
         this.name = name;
         for (int i = 0; i < goal; i++) {
-            final Criterion criterion = i == 0 ? new Criterion(trigger) : new Criterion();
+            final ICriterionInstance mctrigger = SpongeScoreTrigger.Instance.ofScore(i);
+            final Criterion criterion = i == 0 ? new Criterion(trigger != null ? trigger : mctrigger) : new Criterion(mctrigger);
             ((CriterionBridge) criterion).bridge$setScoreCriterion(this);
             ((CriterionBridge) criterion).bridge$setName(name + INTERNAL_SUFFIX_BASE + i);
             this.internalCriteria.add((DefaultedAdvancementCriterion) criterion);

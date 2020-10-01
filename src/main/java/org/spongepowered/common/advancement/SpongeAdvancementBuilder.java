@@ -28,16 +28,18 @@ import static com.google.common.base.Preconditions.checkNotNull;
 
 import net.minecraft.advancements.AdvancementRewards;
 import net.minecraft.advancements.Criterion;
+import net.minecraft.advancements.FrameType;
 import net.minecraft.util.ResourceLocation;
 import org.checkerframework.checker.nullness.qual.Nullable;
 import org.spongepowered.api.ResourceKey;
 import org.spongepowered.api.advancement.Advancement;
 import org.spongepowered.api.advancement.DisplayInfo;
 import org.spongepowered.api.advancement.criteria.AdvancementCriterion;
-import org.spongepowered.api.text.translation.FixedTranslation;
-import org.spongepowered.api.text.translation.Translation;
 import org.spongepowered.api.util.Tuple;
+import org.spongepowered.common.advancement.criterion.SpongeCriterionHelper;
+import org.spongepowered.common.adventure.SpongeAdventure;
 import org.spongepowered.common.bridge.advancements.AdvancementBridge;
+import org.spongepowered.common.item.util.ItemStackUtil;
 import org.spongepowered.common.util.SpongeCatalogBuilder;
 
 import java.util.Map;
@@ -47,7 +49,7 @@ public final class SpongeAdvancementBuilder extends SpongeCatalogBuilder<Advance
     @Nullable private Advancement parent;
     private AdvancementCriterion criterion;
     @Nullable private DisplayInfo displayInfo;
-    private Translation translation;
+    @Nullable private ResourceLocation backgroundPath;
 
     public SpongeAdvancementBuilder() {
         this.reset();
@@ -56,6 +58,14 @@ public final class SpongeAdvancementBuilder extends SpongeCatalogBuilder<Advance
     @Override
     public Advancement.Builder parent(@Nullable Advancement parent) {
         this.parent = parent;
+        this.backgroundPath = null;
+        return this;
+    }
+
+    @Override
+    public Advancement.Builder root(String backgroundPath) {
+        this.parent = null;
+        this.backgroundPath = new ResourceLocation(backgroundPath);
         return this;
     }
 
@@ -73,34 +83,24 @@ public final class SpongeAdvancementBuilder extends SpongeCatalogBuilder<Advance
     }
 
     @Override
-    public Advancement.Builder name(String name) {
-        this.translation = new FixedTranslation(name);
-        return this;
-    }
-
-    @Override
-    public Advancement.Builder name(Translation translation) {
-        this.translation = translation;
-        return this;
-    }
-
-    @Override
     protected Advancement build(ResourceKey key) {
         final Tuple<Map<String, Criterion>, String[][]> result = SpongeCriterionHelper.toVanillaCriteriaData(this.criterion);
         final AdvancementRewards rewards = AdvancementRewards.EMPTY;
         final ResourceLocation resourceLocation = (ResourceLocation) (Object) key;
-        final net.minecraft.advancements.DisplayInfo displayInfo = this.displayInfo == null ? null :
-                (net.minecraft.advancements.DisplayInfo) DisplayInfo.builder().from(this.displayInfo).build(); // Create a copy
-        net.minecraft.advancements.Advancement parent = (net.minecraft.advancements.Advancement) this.parent;
-        if (parent == null) {
-            parent = AdvancementRegistryModule.DUMMY_ROOT_ADVANCEMENT; // Attach a dummy root until a tree is constructed
-        }
+
+        final net.minecraft.advancements.DisplayInfo displayInfo = this.displayInfo == null ? null : new net.minecraft.advancements.DisplayInfo(
+                ItemStackUtil.fromSnapshotToNative(this.displayInfo.getIcon()),
+                SpongeAdventure.asVanilla(this.displayInfo.getTitle()),
+                SpongeAdventure.asVanilla(this.displayInfo.getDescription()),
+                this.backgroundPath,
+                (FrameType) (Object) this.displayInfo.getType(),
+                this.displayInfo.doesShowToast(),
+                this.displayInfo.doesAnnounceToChat(),
+                this.displayInfo.isHidden());
+        final net.minecraft.advancements.Advancement parent = (net.minecraft.advancements.Advancement) this.parent;
         final Advancement advancement = (Advancement) new net.minecraft.advancements.Advancement(
                 resourceLocation, parent, displayInfo, rewards, result.getFirst(), result.getSecond());
         ((AdvancementBridge) advancement).bridge$setCriterion(this.criterion);
-        if (this.translation != null) {
-            ((AdvancementBridge) advancement).bridge$setTranslation(this.translation);
-        }
         return advancement;
     }
 
@@ -110,6 +110,7 @@ public final class SpongeAdvancementBuilder extends SpongeCatalogBuilder<Advance
         this.displayInfo = null;
         this.parent = null;
         this.key = null;
+        this.backgroundPath = null;
         return this;
     }
 }

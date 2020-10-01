@@ -22,7 +22,7 @@
  * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
  * THE SOFTWARE.
  */
-package org.spongepowered.common.mixin.invalid.core.advancements;
+package org.spongepowered.common.mixin.core.advancements;
 
 import com.google.gson.JsonDeserializationContext;
 import com.google.gson.JsonObject;
@@ -32,7 +32,7 @@ import org.spongepowered.asm.mixin.Mixin;
 import org.spongepowered.asm.mixin.injection.At;
 import org.spongepowered.asm.mixin.injection.Inject;
 import org.spongepowered.asm.mixin.injection.callback.CallbackInfoReturnable;
-import org.spongepowered.common.advancement.SpongeScoreCriterion;
+import org.spongepowered.common.advancement.criterion.SpongeScoreCriterion;
 import org.spongepowered.common.bridge.advancements.CriterionBridge;
 
 import java.util.UUID;

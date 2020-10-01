@@ -22,70 +22,71 @@
  * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
  * THE SOFTWARE.
  */
-package org.spongepowered.common.mixin.api.mcp.advancements;
+package org.spongepowered.common.mixin.core.advancements;
 
-import net.minecraft.advancements.Advancement;
 import net.minecraft.advancements.AdvancementProgress;
 import net.minecraft.advancements.CriterionProgress;
 import org.spongepowered.api.advancement.criteria.AdvancementCriterion;
 import org.spongepowered.asm.mixin.Final;
 import org.spongepowered.asm.mixin.Mixin;
 import org.spongepowered.asm.mixin.Shadow;
+import org.spongepowered.asm.mixin.injection.At;
+import org.spongepowered.asm.mixin.injection.Inject;
+import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
+import org.spongepowered.common.advancement.criterion.ImplementationBackedCriterionProgress;
 import org.spongepowered.common.bridge.advancements.AdvancementProgressBridge;
 import org.spongepowered.common.bridge.advancements.CriterionProgressBridge;
-import org.spongepowered.common.util.MissingImplementationException;
 
-import java.time.Instant;
 import java.util.Date;
-import java.util.Optional;
 
 import javax.annotation.Nullable;
 
 @Mixin(CriterionProgress.class)
-public abstract class CriterionProgressMixin_API implements org.spongepowered.api.advancement.criteria.CriterionProgress {
+public abstract class CriterionProgressMixin implements CriterionProgressBridge, ImplementationBackedCriterionProgress {
 
     @Shadow @Nullable private Date obtained;
     @Shadow public abstract void shadow$reset();
 
-    @Override
-    public AdvancementCriterion getCriterion() {
-        return ((CriterionProgressBridge) this).bridge$getCriterion();
+    @Nullable private AdvancementCriterion impl$criterion;
+    private org.spongepowered.api.advancement.AdvancementProgress impl$advancementProgress;
+
+    @Inject(method = "obtain", at = @At("RETURN"))
+    private void onObtain(CallbackInfo ci) {
+        ((AdvancementProgressBridge) this.impl$advancementProgress).bridge$invalidateAchievedState();
+    }
+
+    @Inject(method = "reset", at = @At("RETURN"))
+    private void onReset(CallbackInfo ci) {
+        ((AdvancementProgressBridge) this.impl$advancementProgress).bridge$invalidateAchievedState();
     }
 
     @Override
-    public boolean achieved() {
-        return this.obtained != null;
+    public AdvancementCriterion bridge$getCriterion() {
+        return this.impl$criterion;
     }
 
     @Override
-    public Optional<Instant> get() {
-        return this.obtained == null ? Optional.empty() : Optional.of(this.obtained.toInstant());
+    public void bridge$setCriterion(AdvancementCriterion criterion) {
+        this.impl$criterion = criterion;
     }
 
     @Override
-    public Instant grant() {
-        if (this.obtained != null) {
-            return this.obtained.toInstant();
-        }
-        throw new MissingImplementationException("CriterionProgress", "grant()java.time.Instant;");
-//        final Advancement advancement = (Advancement) ((org.spongepowered.api.advancement.AdvancementProgress)
-//                this.advancementProgress).getAdvancement();
-//        ((AdvancementProgressBridge) this.advancementProgress).bridge$getPlayerAdvancements()
-//                .grantCriterion(advancement, this.getCriterion().getName());
-//        return this.obtained.toInstant();
+    public org.spongepowered.api.advancement.AdvancementProgress bridge$getAdvancementProgress() {
+        return this.impl$advancementProgress;
     }
 
     @Override
-    public Optional<Instant> revoke() {
-        if (this.obtained == null) {
-            return Optional.empty();
-        }
-        final Instant instant = this.obtained.toInstant();
-        final Advancement advancement = (Advancement) ((org.spongepowered.api.advancement.AdvancementProgress)
-                this.advancementProgress).getAdvancement();
-        ((AdvancementProgressBridge) this.advancementProgress).bridge$getPlayerAdvancements()
-                .revokeCriterion(advancement, this.getCriterion().getName());
-        return Optional.of(instant);
+    public void bridge$setAdvancementProgress(org.spongepowered.api.advancement.AdvancementProgress advancementProgress) {
+        this.impl$advancementProgress = advancementProgress;
     }
 
+
+    @Override
+    public boolean bridge$isCriterionAvailable() {
+        return this.impl$criterion != null;
+    }
+
+    @Override
+    public void invalidateAchievedState() {
+    }
 }

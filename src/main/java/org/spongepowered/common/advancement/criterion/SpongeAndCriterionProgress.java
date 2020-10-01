@@ -22,21 +22,36 @@
  * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
  * THE SOFTWARE.
  */
-package org.spongepowered.common.advancement;
+package org.spongepowered.common.advancement.criterion;
 
-import net.minecraft.advancements.Criterion;
-import net.minecraft.advancements.ICriterionInstance;
+import org.spongepowered.api.advancement.AdvancementProgress;
 import org.spongepowered.api.advancement.criteria.AdvancementCriterion;
-import org.spongepowered.common.bridge.advancements.CriterionBridge;
 
-public class SpongeCriterionBuilder extends AbstractCriterionBuilder<AdvancementCriterion, AdvancementCriterion.Builder>
-        implements AdvancementCriterion.Builder {
+import java.time.Instant;
+import java.util.Optional;
 
-    @SuppressWarnings("ConstantConditions")
+public class SpongeAndCriterionProgress extends SpongeOperatorCriterionProgress {
+
+    public SpongeAndCriterionProgress(final AdvancementProgress progress, final SpongeAndCriterion criterion) {
+        super(progress, criterion);
+    }
+
     @Override
-    AdvancementCriterion build0() {
-        final Criterion criterion = new Criterion((ICriterionInstance) this.trigger);
-        ((CriterionBridge) criterion).bridge$setName(this.name);
-        return (AdvancementCriterion) criterion;
+    public SpongeAndCriterion getCriterion() {
+        return (SpongeAndCriterion) super.getCriterion();
+    }
+
+    @Override
+    public Optional<Instant> get0() {
+        Optional<Instant> time = Optional.empty();
+        for (final AdvancementCriterion criterion : this.getCriterion().getCriteria()) {
+            final Optional<Instant> time1 = this.progress.get(criterion).get().get();
+            if (!time1.isPresent()) {
+                return Optional.empty();
+            } else if (!time.isPresent() || time1.get().isAfter(time.get())) {
+                time = time1;
+            }
+        }
+        return time;
     }
 }

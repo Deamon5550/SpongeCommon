@@ -22,15 +22,18 @@
  * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
  * THE SOFTWARE.
  */
-package org.spongepowered.common.advancement;
+package org.spongepowered.common.advancement.criterion;
 
 import static com.google.common.base.Preconditions.checkNotNull;
 
 import com.google.common.collect.ImmutableSet;
 import net.minecraft.advancements.Criterion;
+import net.minecraft.advancements.criterion.CriterionInstance;
+import net.minecraft.util.ResourceLocation;
 import org.spongepowered.api.advancement.criteria.AdvancementCriterion;
 import org.spongepowered.api.advancement.criteria.OperatorCriterion;
 import org.spongepowered.api.util.Tuple;
+import org.spongepowered.common.accessor.advancements.CriteriaTriggersAccessor;
 
 import java.util.ArrayList;
 import java.util.HashMap;
@@ -65,7 +68,7 @@ public final class SpongeCriterionHelper {
         }
     }
 
-    static Tuple<Map<String, Criterion>, String[][]> toVanillaCriteriaData(final AdvancementCriterion criterion) {
+    public static Tuple<Map<String, Criterion>, String[][]> toVanillaCriteriaData(final AdvancementCriterion criterion) {
         final Map<String, Criterion> criteria = new HashMap<>();
         if (criterion == SpongeEmptyCriterion.INSTANCE) {
             return new Tuple<>(criteria, new String[0][0]);

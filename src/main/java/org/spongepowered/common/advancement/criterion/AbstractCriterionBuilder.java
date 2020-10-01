@@ -22,46 +22,57 @@
  * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
  * THE SOFTWARE.
  */
-package org.spongepowered.common.mixin.invalid.core.advancements;
+package org.spongepowered.common.advancement.criterion;
 
+import static com.google.common.base.Preconditions.checkNotNull;
 import static com.google.common.base.Preconditions.checkState;
 
-import net.minecraft.advancements.DisplayInfo;
-import net.minecraft.util.ResourceLocation;
-import org.checkerframework.checker.nullness.qual.Nullable;
-import org.spongepowered.api.advancement.Advancement;
-import org.spongepowered.asm.mixin.Final;
-import org.spongepowered.asm.mixin.Mixin;
-import org.spongepowered.asm.mixin.Mutable;
-import org.spongepowered.asm.mixin.Shadow;
-import org.spongepowered.common.bridge.advancements.DisplayInfoBridge;
+import org.spongepowered.api.advancement.criteria.AdvancementCriterion;
+import org.spongepowered.api.advancement.criteria.ScoreAdvancementCriterion;
+import org.spongepowered.api.advancement.criteria.trigger.FilteredTrigger;
 
-@Mixin(DisplayInfo.class)
-public abstract class DisplayInfoMixin implements DisplayInfoBridge {
+import javax.annotation.Nullable;
 
-    @Shadow @Final @Mutable @Nullable private ResourceLocation background;
+@SuppressWarnings("unchecked")
+public abstract class AbstractCriterionBuilder<T extends AdvancementCriterion, B extends AdvancementCriterion.BaseBuilder<T, B>>
+        implements ScoreAdvancementCriterion.BaseBuilder<T, B> {
 
-    @Nullable private Advancement impl$advancement;
+    @Nullable protected FilteredTrigger<?> trigger;
+    @Nullable protected String name;
 
     @Override
-    public Advancement bridge$getAdvancement() {
-        checkState(this.impl$advancement != null, "The advancement is not yet initialized");
-        return this.impl$advancement;
+    public B trigger(FilteredTrigger<?> trigger) {
+        checkNotNull(trigger, "trigger");
+        this.trigger = trigger;
+        return (B) this;
     }
 
     @Override
-    public void bridge$setAdvancement(Advancement advancement) {
-        this.impl$advancement = advancement;
-    }
-
-    @Nullable
-    @Override
-    public String bridge$getBackground() {
-        return this.background == null ? null : this.background.toString();
+    public B name(String name) {
+        checkNotNull(name, "name");
+        this.name = name;
+        return (B) this;
     }
 
     @Override
-    public void bridge$setBackground(@Nullable String background) {
-        this.background = background == null ? null : new ResourceLocation(background);
+    public T build() {
+        checkState(this.name != null, "The name must be set");
+        return this.build0();
+    }
+
+    abstract T build0();
+
+    @Override
+    public B from(T value) {
+        this.trigger = value.getTrigger().orElse(null);
+        this.name = value.getName();
+        return (B) this;
+    }
+
+    @Override
+    public B reset() {
+        this.trigger = null;
+        this.name = null;
+        return (B) this;
     }
 }
