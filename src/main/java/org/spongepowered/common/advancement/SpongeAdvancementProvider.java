@@ -35,7 +35,7 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 
-public class SpongeAdvancementProvider {
+public final class SpongeAdvancementProvider {
     private static final int PACK_VERSION_1_15 = 6;
 
     public static void registerAdvancements(Registry<Advancement> advancements) {

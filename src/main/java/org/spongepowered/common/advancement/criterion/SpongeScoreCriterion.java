@@ -26,11 +26,8 @@ package org.spongepowered.common.advancement.criterion;
 
 import net.minecraft.advancements.Criterion;
 import net.minecraft.advancements.ICriterionInstance;
-import net.minecraft.advancements.criterion.CriterionInstance;
-import net.minecraft.util.ResourceLocation;
 import org.spongepowered.api.advancement.criteria.ScoreAdvancementCriterion;
 import org.spongepowered.api.advancement.criteria.trigger.FilteredTrigger;
-import org.spongepowered.common.advancement.criterion.DefaultedAdvancementCriterion;
 import org.spongepowered.common.bridge.advancements.CriterionBridge;
 
 import java.util.ArrayList;
@@ -42,7 +39,7 @@ import javax.annotation.Nullable;
 public class SpongeScoreCriterion implements ScoreAdvancementCriterion, DefaultedAdvancementCriterion {
 
     public static boolean BYPASS_EVENT = false;
-    static final String INTERNAL_SUFFIX_BASE = "&score_goal_id=";
+    public static final String INTERNAL_SUFFIX_BASE = "&score_goal_id=";
 
     private final String name;
     public final List<DefaultedAdvancementCriterion> internalCriteria;
@@ -52,12 +49,22 @@ public class SpongeScoreCriterion implements ScoreAdvancementCriterion, Defaulte
         this.internalCriteria = new ArrayList<>(goal);
         this.name = name;
         for (int i = 0; i < goal; i++) {
-            final ICriterionInstance mctrigger = SpongeScoreTrigger.Instance.ofScore(i);
-            final Criterion criterion = i == 0 ? new Criterion(trigger != null ? trigger : mctrigger) : new Criterion(mctrigger);
+            final ICriterionInstance mctrigger;
+            if (i == 0) {
+                mctrigger = trigger == null ? SpongeScoreTrigger.Instance.of(goal) : trigger;
+            } else {
+                mctrigger = SpongeDummyTrigger.Instance.dummy();
+            }
+            final Criterion criterion = new Criterion(mctrigger);
             ((CriterionBridge) criterion).bridge$setScoreCriterion(this);
             ((CriterionBridge) criterion).bridge$setName(name + INTERNAL_SUFFIX_BASE + i);
             this.internalCriteria.add((DefaultedAdvancementCriterion) criterion);
         }
+    }
+
+    public SpongeScoreCriterion(final String name, final List<DefaultedAdvancementCriterion> internalCriteria) {
+        this.name = name;
+        this.internalCriteria = internalCriteria;
     }
 
     @Override
@@ -74,5 +81,24 @@ public class SpongeScoreCriterion implements ScoreAdvancementCriterion, Defaulte
     public Optional<FilteredTrigger<?>> getTrigger() {
         // The first internal criterion holds the trigger
         return this.internalCriteria.get(0).getTrigger();
+    }
+
+    @Override
+    public boolean equals(Object o) {
+        if (this == o) {
+            return true;
+        }
+        if (!(o instanceof SpongeScoreCriterion)) {
+            return false;
+        }
+
+        SpongeScoreCriterion that = (SpongeScoreCriterion) o;
+
+        return this.name.equals(that.name);
+    }
+
+    @Override
+    public int hashCode() {
+        return this.name.hashCode();
     }
 }

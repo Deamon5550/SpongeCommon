@@ -66,6 +66,7 @@ import org.spongepowered.common.event.tracking.PhaseTracker;
 
 import java.time.Instant;
 import java.util.HashMap;
+import java.util.LinkedHashMap;
 import java.util.Map;
 import java.util.Optional;
 
@@ -76,7 +77,7 @@ public abstract class AdvancementProgressMixin implements AdvancementProgressBri
 
     @Shadow @Final private Map<String, net.minecraft.advancements.CriterionProgress> criteria;
 
-    @Nullable private Map<AdvancementCriterion, ImplementationBackedCriterionProgress> impl$progressMap;
+    @Nullable private Map<String, ImplementationBackedCriterionProgress> impl$progressMap;
     @Nullable private ResourceLocation impl$advancementKey;
     @Nullable private PlayerAdvancements impl$playerAdvancements;
 
@@ -128,7 +129,7 @@ public abstract class AdvancementProgressMixin implements AdvancementProgressBri
         }
         final Optional<Advancement> advancement = this.getOptionalAdvancement();
         if (advancement.isPresent()) {
-            this.impl$progressMap = new HashMap<>();
+            this.impl$progressMap = new LinkedHashMap<>();
             this.impl$processProgressMap(advancement.get().getCriterion(), this.impl$progressMap);
         } else {
             this.impl$progressMap = null;
@@ -136,12 +137,12 @@ public abstract class AdvancementProgressMixin implements AdvancementProgressBri
     }
 
     @Override
-    public Map<AdvancementCriterion, ImplementationBackedCriterionProgress> bridge$getProgressMap() {
+    public Map<String, ImplementationBackedCriterionProgress> bridge$getProgressMap() {
         return this.impl$progressMap;
     }
 
     @Inject(method = "update", at = @At("RETURN"))
-    private void impl$updateCriterionsandMap(Map<String, Criterion> criteria, String[][] requirements, CallbackInfo ci) {
+    private void impl$updateCriterionsAndMap(Map<String, Criterion> criteria, String[][] requirements, CallbackInfo ci) {
         // Validate the requirements to check whether their
         // criterion actually exists, prevents bugs when mods
         // accidentally use non existent requirements
@@ -161,21 +162,18 @@ public abstract class AdvancementProgressMixin implements AdvancementProgressBri
         this.bridge$updateProgressMap();
     }
 
-    private Map<AdvancementCriterion, ImplementationBackedCriterionProgress> impl$getProgressMap() {
+    private Map<String, ImplementationBackedCriterionProgress> impl$getProgressMap() {
         checkState(this.impl$progressMap != null, "progressMap isn't initialized");
         return this.impl$progressMap;
     }
 
-    private void impl$processProgressMap(AdvancementCriterion criterion,
-            Map<AdvancementCriterion, ImplementationBackedCriterionProgress> progressMap) {
+    private void impl$processProgressMap(AdvancementCriterion criterion, Map<String, ImplementationBackedCriterionProgress> progressMap) {
         if (criterion instanceof OperatorCriterion) {
             ((OperatorCriterion) criterion).getCriteria().forEach(child -> this.impl$processProgressMap(child, progressMap));
             if (criterion instanceof AndCriterion) {
-                progressMap.put(criterion,
-                        new SpongeAndCriterionProgress((org.spongepowered.api.advancement.AdvancementProgress) this, (SpongeAndCriterion) criterion));
+                progressMap.put(criterion.getName(), new SpongeAndCriterionProgress((org.spongepowered.api.advancement.AdvancementProgress) this, (SpongeAndCriterion) criterion));
             } else if (criterion instanceof OrCriterion) {
-                progressMap.put(criterion,
-                        new SpongeOrCriterionProgress((org.spongepowered.api.advancement.AdvancementProgress) this, (SpongeOrCriterion) criterion));
+                progressMap.put(criterion.getName(), new SpongeOrCriterionProgress((org.spongepowered.api.advancement.AdvancementProgress) this, (SpongeOrCriterion) criterion));
             }
         } else if (criterion instanceof SpongeScoreCriterion) {
             final SpongeScoreCriterion scoreCriterion = (SpongeScoreCriterion) criterion;
@@ -183,15 +181,14 @@ public abstract class AdvancementProgressMixin implements AdvancementProgressBri
                 final CriterionProgressBridge progress = (CriterionProgressBridge) this.criteria.get(internalCriterion.getName());
                 progress.bridge$setCriterion(internalCriterion);
                 progress.bridge$setAdvancementProgress((org.spongepowered.api.advancement.AdvancementProgress) this);
-                progressMap.put(internalCriterion, (ImplementationBackedCriterionProgress) progress);
+                progressMap.put(internalCriterion.getName(), (ImplementationBackedCriterionProgress) progress);
             }
-            progressMap.put(scoreCriterion,
-                    new SpongeScoreCriterionProgress((org.spongepowered.api.advancement.AdvancementProgress) this, scoreCriterion));
+            progressMap.put(scoreCriterion.getName(), new SpongeScoreCriterionProgress((org.spongepowered.api.advancement.AdvancementProgress) this, scoreCriterion));
         } else if (criterion != SpongeEmptyCriterion.INSTANCE) {
             final CriterionProgressBridge progress = (CriterionProgressBridge) this.criteria.get(criterion.getName());
             progress.bridge$setCriterion(criterion);
             progress.bridge$setAdvancementProgress((org.spongepowered.api.advancement.AdvancementProgress) this);
-            progressMap.put(criterion, (ImplementationBackedCriterionProgress) progress);
+            progressMap.put(criterion.getName(), (ImplementationBackedCriterionProgress) progress);
         }
     }
 

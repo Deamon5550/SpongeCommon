@@ -27,12 +27,16 @@ package org.spongepowered.common.mixin.core.advancements;
 import com.google.gson.JsonDeserializationContext;
 import com.google.gson.JsonObject;
 import net.minecraft.advancements.Criterion;
+import net.minecraft.advancements.ICriterionInstance;
 import org.checkerframework.checker.nullness.qual.Nullable;
+import org.spongepowered.asm.mixin.Final;
 import org.spongepowered.asm.mixin.Mixin;
+import org.spongepowered.asm.mixin.Shadow;
 import org.spongepowered.asm.mixin.injection.At;
 import org.spongepowered.asm.mixin.injection.Inject;
 import org.spongepowered.asm.mixin.injection.callback.CallbackInfoReturnable;
 import org.spongepowered.common.advancement.criterion.SpongeScoreCriterion;
+import org.spongepowered.common.advancement.criterion.SpongeScoreTrigger;
 import org.spongepowered.common.bridge.advancements.CriterionBridge;
 
 import java.util.UUID;
@@ -40,9 +44,11 @@ import java.util.UUID;
 @Mixin(Criterion.class)
 public abstract class CriterionMixin implements CriterionBridge {
 
+    @Shadow @Final private ICriterionInstance criterionInstance;
     @Nullable private String impl$name;
     @Nullable private SpongeScoreCriterion impl$scoreCriterion;
     @Nullable private Integer impl$scoreGoal;
+    @Nullable private String impl$scoreCriterionName;
 
     @Inject(method = "criterionFromJson", at = @At("RETURN"))
     private static void impl$fixTriggerTimeDeserializer(final JsonObject json, final JsonDeserializationContext context,
@@ -50,6 +56,19 @@ public abstract class CriterionMixin implements CriterionBridge {
         final Criterion criterion = ci.getReturnValue();
         if (json.has("trigger_times")) {
             ((CriterionBridge) criterion).bridge$setScoreGoal(json.get("trigger_times").getAsInt());
+        }
+        if (json.has("criterion")) {
+            ((CriterionBridge) criterion).bridge$setScoreCriterionName(json.get("criterion").getAsString());
+        }
+    }
+
+    @Inject(method = "serialize", at = @At("RETURN"))
+    private void impl$serializeTriggerTimes(CallbackInfoReturnable<JsonObject> cir) {
+        if (this.criterionInstance instanceof SpongeScoreTrigger.Instance) {
+            cir.getReturnValue().addProperty("trigger_times", ((SpongeScoreTrigger.Instance) this.criterionInstance).getTriggerTimes());
+        }
+        if (this.impl$scoreCriterion != null) {
+            cir.getReturnValue().addProperty("criterion", this.impl$scoreCriterion.getName());
         }
     }
 
@@ -86,5 +105,16 @@ public abstract class CriterionMixin implements CriterionBridge {
     @Override
     public void bridge$setScoreGoal(@Nullable final Integer goal) {
         this.impl$scoreGoal = goal;
+    }
+
+    @Override
+    public void bridge$setScoreCriterionName(String name) {
+        this.impl$scoreCriterionName = name;
+    }
+
+    @Override
+    @Nullable
+    public String bridge$getScoreCriterionName() {
+        return this.impl$scoreCriterionName;
     }
 }

@@ -46,10 +46,12 @@ import org.spongepowered.asm.mixin.Overwrite;
 import org.spongepowered.asm.mixin.Shadow;
 import org.spongepowered.asm.mixin.injection.At;
 import org.spongepowered.asm.mixin.injection.Inject;
+import org.spongepowered.asm.mixin.injection.Redirect;
 import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
 import org.spongepowered.common.SpongeImplHooks;
 import org.spongepowered.common.advancement.criterion.DefaultedAdvancementCriterion;
 import org.spongepowered.common.advancement.criterion.SpongeScoreCriterion;
+import org.spongepowered.common.advancement.criterion.SpongeScoreTrigger;
 import org.spongepowered.common.adventure.SpongeAdventure;
 import org.spongepowered.common.bridge.advancements.AdvancementBridge;
 import org.spongepowered.common.bridge.advancements.CriterionBridge;
@@ -58,6 +60,7 @@ import org.spongepowered.common.bridge.advancements.DisplayInfoBridge;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.HashSet;
+import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
@@ -93,45 +96,40 @@ public abstract class AdvancementMixin implements AdvancementBridge {
 
         this.impl$toastText = this.impl$generateToastText();
 
-        final Set<String> scoreCriteria = new HashSet<>();
-        final Map<String, DefaultedAdvancementCriterion> criterionMap = new HashMap<>();
-        for (final Map.Entry<String, Criterion> entry : new HashMap<>(criteria).entrySet()) {
+        final Map<String, DefaultedAdvancementCriterion> criteriaMap = new LinkedHashMap<>();
+        final Map<String, List<DefaultedAdvancementCriterion>> scoreCriteria = new HashMap<>();
+        for (Map.Entry<String, Criterion> entry : criteria.entrySet()) {
             final CriterionBridge mixinCriterion = (CriterionBridge) entry.getValue();
-            final DefaultedAdvancementCriterion criterion;
-            if (mixinCriterion.bridge$getScoreGoal() != null) {
-                criterion = new SpongeScoreCriterion(entry.getKey(), mixinCriterion.bridge$getScoreGoal(),
-                        entry.getValue().getCriterionInstance());
-                scoreCriteria.add(entry.getKey());
-                ((SpongeScoreCriterion) criterion).internalCriteria.forEach(
-                        criterion1 -> criteria.put(criterion1.getName(), (Criterion) criterion1));
-            } else {
-                criterion = (DefaultedAdvancementCriterion) mixinCriterion;
-                ((CriterionBridge) criterion).bridge$setName(entry.getKey());
+            final String groupName = mixinCriterion.bridge$getScoreCriterionName();
+            if (groupName != null) {
+                scoreCriteria.computeIfAbsent(groupName, k -> new ArrayList<>()).add((DefaultedAdvancementCriterion) entry.getValue());
             }
-            criterionMap.put(entry.getKey(), criterion);
+
+            criteriaMap.put(entry.getKey(), (DefaultedAdvancementCriterion) mixinCriterion);
+            mixinCriterion.bridge$setName(entry.getKey());
         }
-        final List<String[]> entries = new ArrayList<>();
+        for (Map.Entry<String, List<DefaultedAdvancementCriterion>> groupEntry : scoreCriteria.entrySet()) {
+            criteriaMap.put(groupEntry.getKey(), new SpongeScoreCriterion(groupEntry.getKey(), groupEntry.getValue()));
+            groupEntry.getValue().forEach(c -> criteriaMap.remove(c.getName()));
+        }
+
         final List<AdvancementCriterion> andCriteria = new ArrayList<>();
         for (final String[] array : requirements) {
             final Set<AdvancementCriterion> orCriteria = new HashSet<>();
             for (final String name : array) {
-                final DefaultedAdvancementCriterion criterion = criterionMap.get(name);
-                if (criterion instanceof SpongeScoreCriterion) {
-                    ((SpongeScoreCriterion) criterion).internalCriteria.forEach(
-                            criterion1 -> entries.add(new String[]{criterion1.getName()}));
+                final DefaultedAdvancementCriterion criterion = criteriaMap.get(name);
+                if (criterion == null && criteria.get(name) != null) { // internal removed by scoreCriterion
+                    final DefaultedAdvancementCriterion scoreCriterion = criteriaMap.remove(((CriterionBridge) criteria.get(name)).bridge$getScoreCriterionName());
+                    if (scoreCriterion != null) {
+                        orCriteria.add(scoreCriterion);
+                    } // else already added scoreCriterion
                 } else {
-                    entries.add(new String[]{criterion.getName()});
+                    orCriteria.add(criterion);
                 }
-                orCriteria.add(criterion);
             }
             andCriteria.add(OrCriterion.of(orCriteria));
         }
         this.impl$criterion = AndCriterion.of(andCriteria);
-        if (!scoreCriteria.isEmpty()) {
-            scoreCriteria.forEach(criteria::remove);
-            this.criteria = ImmutableMap.copyOf(criteria);
-            this.requirements = entries.toArray(new String[entries.size()][]);
-        }
     }
 
     private ImmutableList<Component> impl$generateToastText() {

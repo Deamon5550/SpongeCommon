@@ -38,6 +38,7 @@ import org.spongepowered.common.accessor.advancements.CriteriaTriggersAccessor;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.Iterator;
+import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -69,7 +70,7 @@ public final class SpongeCriterionHelper {
     }
 
     public static Tuple<Map<String, Criterion>, String[][]> toVanillaCriteriaData(final AdvancementCriterion criterion) {
-        final Map<String, Criterion> criteria = new HashMap<>();
+        final Map<String, Criterion> criteria = new LinkedHashMap<>();
         if (criterion == SpongeEmptyCriterion.INSTANCE) {
             return new Tuple<>(criteria, new String[0][0]);
         }
@@ -84,15 +85,14 @@ public final class SpongeCriterionHelper {
 
     private static void collectCriteria(final AdvancementCriterion criterion, final Map<String, Criterion> criteria) {
         if (criterion instanceof SpongeOperatorCriterion) {
-            ((SpongeOperatorCriterion) criterion).getCriteria()
-                    .forEach(c -> collectCriteria(c, criteria));
+            ((SpongeOperatorCriterion) criterion).getCriteria().forEach(c -> collectCriteria(c, criteria));
         } else if (criterion instanceof SpongeScoreCriterion) {
             final SpongeScoreCriterion scoreCriterion = (SpongeScoreCriterion) criterion;
-            final String name = criterion.getName();
             for (int i = 0; i < scoreCriterion.getGoal(); i++) {
-                final String id = name + SpongeScoreCriterion.INTERNAL_SUFFIX_BASE + i;
-                criteria.put(id, (Criterion) scoreCriterion.internalCriteria.get(i));
+                final DefaultedAdvancementCriterion internalCriterion = scoreCriterion.internalCriteria.get(i);
+                criteria.put(internalCriterion.getName(), ((Criterion) internalCriterion));
             }
+
         } else {
             criteria.put(criterion.getName(), (Criterion) criterion);
         }

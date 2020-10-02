@@ -44,7 +44,7 @@ import org.spongepowered.common.util.SpongeCatalogBuilder;
 
 import java.util.Map;
 
-public final class SpongeAdvancementBuilder extends SpongeCatalogBuilder<Advancement, Advancement.Builder> implements Advancement.Builder {
+public final class SpongeAdvancementBuilder extends SpongeCatalogBuilder<Advancement, Advancement.Builder> implements Advancement.Builder.RootStep {
 
     @Nullable private Advancement parent;
     private AdvancementCriterion criterion;
@@ -63,8 +63,13 @@ public final class SpongeAdvancementBuilder extends SpongeCatalogBuilder<Advance
     }
 
     @Override
-    public Advancement.Builder root(String backgroundPath) {
+    public Advancement.Builder.RootStep root() {
         this.parent = null;
+        return this;
+    }
+
+    @Override
+    public Advancement.Builder background(String backgroundPath) {
         this.backgroundPath = new ResourceLocation(backgroundPath);
         return this;
     }

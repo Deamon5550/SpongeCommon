@@ -27,8 +27,6 @@ package org.spongepowered.common.advancement.criterion;
 import com.google.gson.JsonDeserializationContext;
 import com.google.gson.JsonElement;
 import com.google.gson.JsonObject;
-import com.google.gson.JsonPrimitive;
-import net.minecraft.advancements.ICriterionInstance;
 import net.minecraft.advancements.criterion.AbstractCriterionTrigger;
 import net.minecraft.advancements.criterion.CriterionInstance;
 import net.minecraft.util.JSONUtils;
@@ -52,26 +50,28 @@ public class SpongeScoreTrigger extends AbstractCriterionTrigger<SpongeScoreTrig
 
     @Override
     public SpongeScoreTrigger.Instance deserializeInstance(JsonObject json, JsonDeserializationContext context) {
-        final int score = JSONUtils.getInt(json, "score");
-        return new SpongeScoreTrigger.Instance(this.resourceLocation, score);
+        return new SpongeScoreTrigger.Instance(this.resourceLocation, -1);
     }
 
     public static class Instance extends CriterionInstance {
 
-        private int score;
-        public Instance(ResourceLocation criterionIn, int score) {
+        private int triggerTimes;
+        public Instance(ResourceLocation criterionIn, int triggerTimes) {
             super(criterionIn);
+            this.triggerTimes = triggerTimes;
         }
 
-        public static Instance ofScore(int score) {
-            return new Instance(SpongeScoreTrigger.SCORE_TRIGGER.getId(), score);
+        public static Instance of(int triggerTimes) {
+            return new Instance(SpongeScoreTrigger.SCORE_TRIGGER.getId(), triggerTimes);
         }
 
         @Override
         public JsonElement serialize() {
-            final JsonObject jsonObject = new JsonObject();
-            jsonObject.addProperty("score", this.score);
-            return jsonObject;
+            return new JsonObject();
+        }
+
+        public int getTriggerTimes() {
+            return this.triggerTimes;
         }
     }
 }

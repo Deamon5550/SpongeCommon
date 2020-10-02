@@ -42,4 +42,8 @@ public interface CriterionBridge {
     Integer bridge$getScoreGoal();
 
     void bridge$setScoreGoal(@Nullable Integer goal);
+
+    void bridge$setScoreCriterionName(String name);
+
+    String bridge$getScoreCriterionName();
 }

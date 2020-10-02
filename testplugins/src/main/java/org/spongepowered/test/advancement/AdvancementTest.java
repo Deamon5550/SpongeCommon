@@ -29,16 +29,19 @@ import net.kyori.adventure.text.Component;
 import org.spongepowered.api.ResourceKey;
 import org.spongepowered.api.Sponge;
 import org.spongepowered.api.advancement.Advancement;
+import org.spongepowered.api.advancement.AdvancementProgress;
 import org.spongepowered.api.advancement.AdvancementTree;
 import org.spongepowered.api.advancement.AdvancementTypes;
 import org.spongepowered.api.advancement.DisplayInfo;
 import org.spongepowered.api.advancement.TreeLayout;
 import org.spongepowered.api.advancement.TreeLayoutElement;
 import org.spongepowered.api.advancement.criteria.AdvancementCriterion;
+import org.spongepowered.api.advancement.criteria.OrCriterion;
 import org.spongepowered.api.advancement.criteria.ScoreAdvancementCriterion;
 import org.spongepowered.api.advancement.criteria.trigger.FilteredTrigger;
 import org.spongepowered.api.advancement.criteria.trigger.FilteredTriggerConfiguration;
 import org.spongepowered.api.advancement.criteria.trigger.Trigger;
+import org.spongepowered.api.block.BlockTypes;
 import org.spongepowered.api.command.exception.CommandException;
 import org.spongepowered.api.command.parameter.CommandContext;
 import org.spongepowered.api.data.persistence.AbstractDataBuilder;
@@ -51,10 +54,13 @@ import org.spongepowered.api.event.Listener;
 import org.spongepowered.api.event.advancement.AdvancementTreeEvent;
 import org.spongepowered.api.event.filter.cause.First;
 import org.spongepowered.api.event.item.inventory.ChangeInventoryEvent;
+import org.spongepowered.api.event.item.inventory.container.InteractContainerEvent;
 import org.spongepowered.api.event.lifecycle.RegisterCatalogEvent;
 import org.spongepowered.api.item.ItemTypes;
+import org.spongepowered.api.item.inventory.BlockCarrier;
 import org.spongepowered.api.item.inventory.ItemStack;
 import org.spongepowered.api.item.inventory.query.QueryTypes;
+import org.spongepowered.api.item.inventory.type.CarriedInventory;
 import org.spongepowered.plugin.PluginContainer;
 import org.spongepowered.plugin.jvm.Plugin;
 import org.spongepowered.test.LoadableModule;
@@ -68,6 +74,12 @@ public final class AdvancementTest implements LoadableModule {
     private boolean enabled = false;
     private Advancement rootAdvancement;
     private Trigger<InventoryChangeTriggerConfig> inventoryChangeTrigger;
+    private TriggerListeners listeners = new TriggerListeners();
+    private ScoreAdvancementCriterion counter1;
+    private AdvancementCriterion counter1Bypass;
+    private ScoreAdvancementCriterion counter2;
+    private Advancement counterAdvancement1;
+    private Advancement counterAdvancement2;
 
     @Inject
     public AdvancementTest(final PluginContainer plugin) {
@@ -77,6 +89,7 @@ public final class AdvancementTest implements LoadableModule {
     @Override
     public void enable(CommandContext ctx) {
         this.enabled = true;
+        Sponge.getEventManager().registerListeners(this.plugin, this.listeners);
         try {
             Sponge.getCommandManager().process("reload");
         } catch (CommandException e) {
@@ -88,6 +101,7 @@ public final class AdvancementTest implements LoadableModule {
     @Override
     public void disable(CommandContext ctx) {
         this.enabled = false;
+        Sponge.getEventManager().unregisterListeners(this.listeners);
         try {
             Sponge.getCommandManager().process("reload");
         } catch (CommandException e) {
@@ -119,10 +133,6 @@ public final class AdvancementTest implements LoadableModule {
         event.register(this.inventoryChangeTrigger);
     }
 
-    @Listener
-    public void onContainerEvent(ChangeInventoryEvent event, @First ServerPlayer player) {
-        this.inventoryChangeTrigger.trigger(player);
-    }
 
     @Listener
     @SuppressWarnings("unchecked")
@@ -139,7 +149,7 @@ public final class AdvancementTest implements LoadableModule {
                                 .title(Component.text("Advancement Tests"))
                                 .description(Component.text("Dummy trigger. Granted manually after testplugin is enabled"))
                                 .build())
-                .root("textures/gui/advancements/backgrounds/stone.png")
+                .root().background("textures/gui/advancements/backgrounds/stone.png")
                 .key(ResourceKey.of(this.plugin, "root"))
                 .build();
         event.register(rootAdvancement);
@@ -202,31 +212,59 @@ public final class AdvancementTest implements LoadableModule {
                 .build();
         event.register(tonsOfDirt);
 
-        final Advancement counter = Advancement.builder()
-                .criterion(ScoreAdvancementCriterion.builder().goal(10).name("counter").build())
+        this.counter1 = ScoreAdvancementCriterion.builder().goal(10).name("counter").build();
+        this.counter1Bypass = AdvancementCriterion.dummy();
+        this.counterAdvancement1 = Advancement.builder()
+                .criterion(OrCriterion.of(counter1, counter1Bypass))
                 .displayInfo(DisplayInfo.builder()
-                        .icon(ItemTypes.PAPER)
-                        .title(Component.text("Can you count?"))
+                        .icon(ItemTypes.CHEST)
+                        .title(Component.text("Open some chests."))
                         .type(AdvancementTypes.GOAL)
                         .build())
                 .parent(this.rootAdvancement)
                 .key(ResourceKey.of(this.plugin, "counting"))
                 .build();
-        event.register(counter);
+        event.register(this.counterAdvancement1);
 
-        final Advancement countMore = Advancement.builder()
-                .criterion(ScoreAdvancementCriterion.builder().goal(100).name("counter").build())
+        this.counter2 = ScoreAdvancementCriterion.builder().goal(20).name("counter").build();
+        this.counterAdvancement2 = Advancement.builder()
+                .criterion(counter2)
                 .displayInfo(DisplayInfo.builder()
-                        .icon(ItemTypes.PAPER)
-                        .title(Component.text("Can you count more?"))
+                        .icon(ItemTypes.CHEST)
+                        .title(Component.text("Open more chests"))
                         .type(AdvancementTypes.CHALLENGE)
                         .build())
-                .parent(counter)
+                .parent(counterAdvancement1)
                 .key(ResourceKey.of(this.plugin, "counting_more"))
                 .build();
-        event.register(countMore);
+        event.register(this.counterAdvancement2);
+    }
 
+    public class TriggerListeners {
 
+        @Listener
+        public void onContainerEvent(ChangeInventoryEvent event, @First ServerPlayer player) {
+            AdvancementTest.this.inventoryChangeTrigger.trigger(player);
+        }
+
+        @Listener
+        public void onConainterEvent(InteractContainerEvent.Open event, @First ServerPlayer player) {
+
+            final AdvancementProgress progress1 = player.getProgress(AdvancementTest.this.counterAdvancement1);
+            if (progress1.achieved()) {
+                final AdvancementProgress progress2 = player.getProgress(AdvancementTest.this.counterAdvancement2);
+                progress2.require(AdvancementTest.this.counter2).add(1);
+
+            } else {
+                progress1.require(AdvancementTest.this.counter1).add(1);
+                final Object carrier = ((CarriedInventory) event.getContainer()).getCarrier().orElse(null);
+                if (carrier instanceof BlockCarrier) {
+                    if (((BlockCarrier) carrier).getLocation().getBlockType().isAnyOf(BlockTypes.TRAPPED_CHEST)) {
+                        progress1.require(AdvancementTest.this.counter1Bypass).grant();
+                    }
+                }
+            }
+        }
 
     }
 
