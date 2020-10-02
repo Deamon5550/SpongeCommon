@@ -428,7 +428,7 @@ public final class SpongeCatalogRegistry implements CatalogRegistry {
         return this;
     }
 
-    private <T extends CatalogType> SpongeCatalogRegistry generateCallbackRegistry(final Class<T> catalogClass, final ResourceKey key, final BiConsumer<ResourceLocation, T> callback) {
+    public  <T extends CatalogType> SpongeCatalogRegistry generateCallbackRegistry(final Class<T> catalogClass, final ResourceKey key, final BiConsumer<ResourceLocation, T> callback) {
         Objects.requireNonNull(key);
 
         if (this.registries.containsKey(key)) {
