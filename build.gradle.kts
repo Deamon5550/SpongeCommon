@@ -585,7 +585,7 @@ project("SpongeVanilla") {
 
         // Launch Dependencies - Needed to bootstrap the engine(s)
         // The ModLauncher compatibility launch layer
-        vanillaAppLaunchConfig("cpw.mods:modlauncher:4.1.+") {
+        vanillaAppLaunchConfig("cpw.mods:modlauncher:7.0.+") {
             exclude(group = "org.apache.logging.log4j")
         }
         vanillaAppLaunchConfig("org.ow2.asm:asm-commons:6.2")
